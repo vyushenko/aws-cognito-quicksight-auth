@@ -168,127 +168,37 @@ Resources:
       IdentityPoolId: !Ref CognitoIdPool
       Roles: 
         authenticated: !GetAtt AuthRole.Arn
-  SecurityGroupAllowAllSSH:
-    Type: "AWS::EC2::SecurityGroup"
+  S3WebSite:
+    Type: "AWS::S3::Bucket"
     Properties:
-      GroupDescription: "Allow full access to port 22"
-      SecurityGroupIngress:
-        -
-          CidrIp: "0.0.0.0/0"
-          FromPort: 22
-          IpProtocol: "tcp"
-          ToPort: 22
-  rEC2BaseRole:
-      Type: AWS::IAM::Role
-      Properties:
-        AssumeRolePolicyDocument:
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service:
-                  - ec2.amazonaws.com
-              Action:
-                - sts:AssumeRole
-        Path: "/"
-  rEC2BasePolicy:
-    Type: "AWS::IAM::Policy"
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+  CloudFrontDistro:
+    Type: 'AWS::CloudFront::Distribution'
     Properties:
-      PolicyName: root
-      PolicyDocument:
-        Statement:
-          - Effect: Allow
-            Action:
-              - ec2:DescribeTags
-              - ec2:DescribeVolumes
-              - ec2:DescribeInstances
-            Resource: "*"
-          - Effect: Allow
-            Action:
-              - s3:ListBucket
-              - s3:GetObject
-              - s3:GetBucketLocation
-              - s3:ListAllMyBuckets
-            Resource:
-              - "arn:aws:s3:::*"
-              - "arn:aws:s3:::*/*"
-      Roles:
-        - Ref: rEC2BaseRole
-  rEC2BaseProfile:
-    Type: "AWS::IAM::InstanceProfile"
-    Properties:
-      Path: "/"
-      Roles:
-        - Ref: rEC2BaseRole
-      InstanceProfileName: "EC2BaseProfile"
-  WebContentServer:
-    Type: "AWS::EC2::Instance"
-    Properties:
-      ImageId: "ami-017fecd1353bcc96e"
-      InstanceType: "t2.micro"
-      KeyName: "default-key-pair"
-      IamInstanceProfile: !Ref rEC2BaseProfile
-      SecurityGroups: 
-      - !Ref SecurityGroupAllowAllSSH
-      UserData:
-        Fn::Base64: 
-          !Sub |
-            #!/bin/bash
-            sudo apt -y update
-            sudo apt install -y nodejs unzip npm
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
-            aws s3 cp s3://vyushenko-web-sourcecode/ . --recursive
-            npm_config_yes=true npx http-server ./http-root
-  LoadBalancerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Application Load Balancer Security Group
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: '443'
-          ToPort: '443'
-          CidrIp: 0.0.0.0/0
-      VpcId: 'vpc-0698f93233f6a6db1'
-  LoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: ApplicationLoadBalancer
-      SecurityGroups:
-        - !Ref LoadBalancerSecurityGroup
-  LoadBalancerListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      LoadBalancerArn: !Ref LoadBalancer
-      Port: 80
-      Protocol: HTTP
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref ApplicationTargetGroup
-  ApplicationTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      HealthCheckIntervalSeconds: 30
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 15
-      HealthyThresholdCount: 5
-      UnhealthyThresholdCount: 3
-      Matcher:
-        HttpCode: '200'
-      Name: ApplicationTargetGroup
-      VpcId: 'vpc-0698f93233f6a6db1'
-      Port: 8080
-      Protocol: HTTP
-      TargetGroupAttributes:
-        - Key: deregistration_delay.timeout_seconds
-          Value: '20'
-      Targets:
-        - Id: !Ref WebContentServer
-          Port: 8080
+      DistributionConfig:
+        Origins:
+        - DomainName: !Join [ ".", [ !Ref S3WebSite, "s3-website" , !Ref 'AWS::Region', "amazonaws.com" ] ]
+          Id: S3WebSite
+          CustomOriginConfig:
+            HTTPPort: '80'
+            HTTPSPort: '443'
+            OriginProtocolPolicy: http-only
+        Enabled: 'true'
+        DefaultRootObject: index.html
+        DefaultCacheBehavior:
+          TargetOriginId: S3WebSite
+          ForwardedValues:
+            QueryString: 'false'
+            Cookies:
+              Forward: none
+          DefaultTTL: 0
+          MaxTTL: 0
+          MinTTL: 0
+          ViewerProtocolPolicy: redirect-to-https
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: 'true'
 Outputs:
   ApiUrl:
     Description: <API endpoint URL>
@@ -317,3 +227,9 @@ Outputs:
   CognitoIdentityAuthRole:
     Description: <Cognito Identity IAM Auth Role>
     Value: !Ref AuthRole
+  S3Website:
+    Description: <S3 WebSite URL>
+    Value: !GetAtt S3WebSite.WebsiteURL
+  CloudFrontDistro:
+    Description: <CloudFront Distribution URL>
+    Value: !GetAtt CloudFrontDistro.DomainName

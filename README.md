@@ -55,3 +55,27 @@ aws cloudformation describe-stacks --query 'Stacks[0].[Outputs[].[OutputKey,Outp
 6. Upload the four JS and HTML files from the root folder to the S3 bucket named “cognitoquicksight-s3website-xxxxxxxxx”. Make sure that all files are publicly readable.
 
 7. Access the CloudFront distribution address from a browser to authenticate and access QuickSight
+
+
+
+### New Script
+
+aws s3 cp http-root s3://vyushenko-web-sourcecode/ --recursive
+
+aws cloudformation package --template-file quicksight.yaml --output-template-file quicksight-output.yaml --s3-bucket vy-quicksight-test
+
+aws cloudformation deploy --template-file /Users/vyushenko/src/aws/aws-cognito-quicksight-auth/quicksight-output.yaml --stack-name CognitoQuickSight --capabilities CAPABILITY_IAM
+
+aws cloudformation delete-stack --stack-name CognitoQuickSight
+
+Load Balance Setup Example
+https://stackoverflow.com/questions/63118516/aws-cloudformation-target-group-for-application-load-balancer-is-not-working-fo
+
+API Gateway to EC2
+https://serverfault.com/questions/907709/aws-api-gateway-as-proxy-to-ec2-based-microservices
+
+Another example:
+https://hangarau.space/passing-files-into-ec2-instance-during-bootstrap-using-cloudformation/
+
+Hello World - API Gateway with Lambds
+https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-as-simple-proxy-for-lambda.html
