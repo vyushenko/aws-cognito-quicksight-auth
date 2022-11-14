@@ -2,8 +2,8 @@
 
 KEY_FILE="/Users/vyushenko/src/aws/default-key-pair.pem"
 
-SERVER1=ec2-35-91-130-213.us-west-2.compute.amazonaws.com
-SERVER2=ec2-52-88-6-57.us-west-2.compute.amazonaws.com
+SERVER1=ec2-34-214-84-14.us-west-2.compute.amazonaws.com
+SERVER2=ec2-34-221-181-181.us-west-2.compute.amazonaws.com
 
 SERVER1_USER=ubuntu@${SERVER1}
 SERVER2_USER=ubuntu@${SERVER2}
