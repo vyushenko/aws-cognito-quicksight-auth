@@ -1,1 +1,7 @@
 quicksight-output.yaml
+quicksight-output-new.yaml
+before-switch/*
+experiments/*
+lambda/node_modules/*
+
+**/.DS_Store
