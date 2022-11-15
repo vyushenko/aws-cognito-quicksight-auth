@@ -1,33 +1,39 @@
 <!DOCTYPE html>
 <html lang="en-US">
+
 <head>
   <title>QuickSight via Cognito</title>
   <meta charset="UTF-8">
-    <link rel="shortcut icon" type="image/png" href="https://a0.awsstatic.com/main/images/site/favicon.ico"/>	
-    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/css/materialize.min.css" media="screen,projection">
+  <link rel="shortcut icon" type="image/png" href="https://a0.awsstatic.com/main/images/site/favicon.ico" />
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" type="text/css"
+    href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/css/materialize.min.css" media="screen,projection">
   <link rel="stylesheet" type="text/css" href="style.css">
   <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/js/materialize.min.js"></script>
-  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.96.0.min.js"></script>
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1254.0.min.js"></script>
   <script src="auth.js"></script>
   <script src="aws-cognito-sdk.js"></script>
   <script src="amazon-cognito-auth.min.js"></script>
   <script src="jwt-decode.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
-<body  onload="onLoad()">
-    <nav>
-        <div class="nav-wrapper blue-grey darken-2"> 
-      <a href="https://aws.amazon.com/cognito/" target="_blank" class="hoverable"><img src="https://d2597oqac71veb.cloudfront.net/201406190823/images/cognito-icon.png" alt="Amazon Cognito" title="Amazon Cognito" style="width:75px;height:75px;"></a>
-      <a href="https://quicksight.aws/" target="_blank" class="hoverable"><img src="https://dpeefs3k5hlj8.cloudfront.net/images/quick_sight_default.f52ebfb7e602e4af4b460cbcd1b9d104.7.svg" alt="Amazon QuickSight" title="Amazon QuickSight" style="width:75px;height:75px;"></a>
-        </div>
-    </nav>
-  <br/>
-  <br/>
-  <br/>
-    <div class="container">
+<body onload="onLoad()">
+  <nav>
+    <div class="nav-wrapper blue-grey darken-2">
+      <a href="https://aws.amazon.com/cognito/" target="_blank" class="hoverable"><img
+          src="https://d2597oqac71veb.cloudfront.net/201406190823/images/cognito-icon.png" alt="Amazon Cognito"
+          title="Amazon Cognito" style="width:75px;height:75px;"></a>
+      <a href="https://quicksight.aws/" target="_blank" class="hoverable"><img
+          src="https://dpeefs3k5hlj8.cloudfront.net/images/quick_sight_default.f52ebfb7e602e4af4b460cbcd1b9d104.7.svg"
+          alt="Amazon QuickSight" title="Amazon QuickSight" style="width:75px;height:75px;"></a>
+    </div>
+  </nav>
+  <br />
+  <br />
+  <br />
+  <div class="container">
     <div class="row">
       <div class="col s12 m12 center-align">
         <h5 id="statusNotAuth" title="Status">
@@ -45,7 +51,7 @@
           <ul>
             <li>If you are not redirected, access the following temporary link:</li>
             <div id="consoleLink" class="center-align"></div>
-          </ul> 
+          </ul>
         </div>
       </div>
     </div>
@@ -54,200 +60,260 @@
       <div class="col s12 m12">
         <div id="startButtons" class="center-align">
           <div class="button">
-            <a class="waves-effect waves-light btn-large blue-grey darken-2 z-depth-5" id="signInButton" href="javascript:void(0)" title="Sign in">Sign In / Sign Up</a>
+            <a class="waves-effect waves-light btn-large blue-grey darken-2 z-depth-5" id="signInButton"
+              href="javascript:void(0)" title="Sign in">Sign In / Sign Up</a>
           </div>
         </div>
       </div>
     </div>
 
-    </div>
+  </div>
   <script>
-  let thisUrlEncoded = encodeURIComponent("https://"+window.location.hostname);
-  let quicksightUrlEncoded = encodeURIComponent("https://quicksight.aws.amazon.com/");
-  AWS.config.update({
-    region: region,
-    credentials: new AWS.CognitoIdentityCredentials({
-    IdentityPoolId: ''
-    })
-  });
-
-  AWSCognito.config.region = region;
-  AWSCognito.config.credentials = new AWS.CognitoIdentityCredentials({
-      IdentityPoolId: identityPool 
-  });
-  AWSCognito.config.update({accessKeyId: 'null', secretAccessKey: 'null'});
-
-  // Operations when the web page is loaded.
-  async function onLoad() {
-    document.getElementById("statusNotAuth").style.display = 'block';
-    document.getElementById("statusAuth").style.display = 'none';
-    document.getElementById("instructions").style.display = 'none';
-    // Initiatlize CognitoAuth object
-    var auth = await initCognitoSDK();
-    document.getElementById("signInButton").addEventListener("click", function() {
-      userButton(auth);
-    });
-    var curUrl = window.location.href;
-    auth.parseCognitoWebResponse(curUrl);
-  }
-
-  // Operations when signed in.
-  function showSignedIn(session) {
-    document.getElementById("statusNotAuth").style.display = 'none';
-    document.getElementById("statusAuth").style.display = 'block';
-    document.getElementById("signInButton").innerHTML = "Sign Out";
-    document.getElementById("loader").style.display = "block";
-  }
-
-  // Perform user operations.
-  function userButton(auth) {
-    var state = document.getElementById('signInButton').innerHTML;
-        var statestr = state.toString();
-    if (statestr.includes("Sign Out")) {
-      document.getElementById("signInButton").innerHTML = "Sign In";
-      auth.signOut();
-      showSignedOut();
-    } else {
-      auth.getSession();
-    }
-  }
-
-  const getUserInfo = async function(
-    cognitoUserPoolIdJwtToken,
-    cognitoUserPoolAccessJwtToken,
-    cognitoUserPoolId
-  ) {
-    const cognitoISP = new AWS.CognitoIdentityServiceProvider({
-      apiVersion: "2016-04-18",
-      region: region
-    });
-
-    const cognitoIdentity = new AWS.CognitoIdentity({
-      apiVersion: "2014-06-30",
-      region: region
-    });
-    const loginIdpId = `cognito-idp.${region}.amazonaws.com/${cognitoUserPoolId}`;
-
-    var cognitoidentity = new AWS.CognitoIdentity();
-    const getIdParameters = {
-      AccountId: AccountId,
-      IdentityPoolId: identityPool,
-      Logins: {
-        [loginIdpId]: cognitoUserPoolIdJwtToken
-      }
-    };
-
-    const idInfo = await cognitoidentity.getId(getIdParameters).promise();
-
-    var idTokenParams = {
-      IdentityId: idInfo.IdentityId,
-      Logins: {
-      [loginIdpId]: cognitoUserPoolIdJwtToken
-      }
-    };
-
-    const openIdToken = await cognitoIdentity
-      .getOpenIdToken(idTokenParams)
-      .promise();
-
-    return openIdToken.Token;
-  };
-
-  function getSignInToken(accessKeyId, secretAccessKey, sessionToken, id_token) {
-    let req = new XMLHttpRequest();
-    let creds = {
-      "sessionId":accessKeyId,
-      "sessionKey":secretAccessKey,
-      "sessionToken":sessionToken
+    // Check which flow are we using
+    const url = new URL(window.location.href);
+    const mode = url.searchParams.get('mode');
+    if (mode) {
+      localStorage.setItem('mode', mode);
     }
 
-    let credsEncoded = encodeURIComponent(JSON.stringify(creds));
-    let uri = "https://signin.aws.amazon.com/federation?Action=getSigninToken&SessionDuration=43200&Session="+credsEncoded;
-    $.ajax({
-      type : 'POST',
-      url : endpoint,
-      headers : {
-        Authorization : id_token
-      },
-      data : uri,
-      success : function(response) {
-        let quickSightSSO = "https://signin.aws.amazon.com/federation?Action=login&Issuer="+thisUrlEncoded+"&Destination="+quicksightUrlEncoded+"&SigninToken="+response.SigninToken
-        window.location = quickSightSSO;
-        document.getElementById("consoleLink").innerHTML = "<a href='"+quickSightSSO+"'>"+"https://quicksight.aws.amazon.com"+"</a>";
-        document.getElementById("loader").style.display = "none";
-        document.getElementById("instructions").style.display = 'block';
-      },
-      error : function(xhr, status, error) {
-        var err = eval(xhr.responseText); 
-        if(xhr.status == "0"){
-          document.getElementById("statusAuth").innerHTML = "<h5>Token Expired or Invalid! Signing Out...</h5>"
-          auth.signOut();
-        }                  
-      }
+    // Initialize AWS
+    let thisUrlEncoded = encodeURIComponent("https://" + window.location.hostname);
+    let quicksightUrlEncoded = encodeURIComponent("https://quicksight.aws.amazon.com/");
+    AWS.config.update({
+      region: region,
+      credentials: new AWS.CognitoIdentityCredentials({
+        IdentityPoolId: ''
+      })
     });
-  }
 
-  // Initialize a cognito auth object.
-  function initCognitoSDK() {
-    let auth = new AWSCognito.CognitoIdentityServiceProvider.CognitoAuth(authData);
-    auth.userhandler = {
-      onSuccess: function(result) {
-        showSignedIn(result);
-        let id_token = auth.signInUserSession.idToken.jwtToken;
-        const decodedToken = jwt_decode(id_token);
+    AWSCognito.config.region = region;
+    AWSCognito.config.credentials = new AWS.CognitoIdentityCredentials({
+      IdentityPoolId: identityPool
+    });
+    AWSCognito.config.update({ accessKeyId: 'null', secretAccessKey: 'null' });
 
-        // console.log(JSON.stringify(decodedToken, null, 2));
-        // console.log(JSON.stringify(jwt_decode(auth.signInUserSession.accessToken.jwtToken), null, 2));
+    //
+    // UI functions
+    //
 
-        const useInfoPromise = getUserInfo(
-          auth.signInUserSession.idToken.jwtToken, 
-          auth.signInUserSession.accessToken.jwtToken,
-          poolId);
-        useInfoPromise.then(
-          (openIdToken) => {
-            var sts = new AWS.STS({});
-            var params = {
-              RoleArn: CognitoQuickSightAuthRoleArn,
-              RoleSessionName: decodedToken.email,
-              WebIdentityToken: openIdToken,
-            };
+    // Execute on page load
+    async function onLoad() {
+      document.getElementById("statusNotAuth").style.display = 'block';
+      document.getElementById("statusAuth").style.display = 'none';
+      document.getElementById("instructions").style.display = 'none';
+      // Initiatlize CognitoAuth object
+      var auth = await initCognitoSDK();
+      document.getElementById("signInButton").addEventListener("click", function () {
+        userButton(auth);
+      });
+      var curUrl = window.location.href;
+      auth.parseCognitoWebResponse(curUrl);
+    }
 
-            sts.assumeRoleWithWebIdentity(params, function(err, data) {
-              if (err) {
-                console.log("Error - assumeRoleWithWebIdentity");
-                console.log(err, err.stack); // an error occurred
-              } else {
-                // value.openIdToken
-                getSignInToken(data.Credentials.AccessKeyId, data.Credentials.SecretAccessKey, data.Credentials.SessionToken, id_token);
-              }
-            });
-        }, 
-          (error) => {
-            console.log("useInfoPromise - error");
-            console.log(error);
-        });
+    // Operations when signed in.
+    function showSignedIn(session) {
+      document.getElementById("statusNotAuth").style.display = 'none';
+      document.getElementById("statusAuth").style.display = 'block';
+      document.getElementById("signInButton").innerHTML = "Sign Out";
+      document.getElementById("loader").style.display = "block";
+    }
 
-        /* let cognitoParams = {
-          IdentityPoolId: identityPool,
-          // RoleSessionName: extractUsername(auth.signInUserSession.idToken.jwtToken), - ignored
-          Logins: {}
-        };
-        cognitoParams.Logins["cognito-idp."+region+".amazonaws.com/"+poolId] = id_token;
-        AWS.config.credentials = new AWS.CognitoIdentityCredentials(cognitoParams);
-        AWS.config.getCredentials(function(){
-          getSignInToken(AWS.config.credentials.accessKeyId, AWS.config.credentials.secretAccessKey, AWS.config.credentials.sessionToken, id_token);
-        }); */
-      },
-      onFailure: function(err) {
-        console.log("Error!" + err);
-        document.getElementById("statusAuth").innerHTML = "<h5>Token Expired or Invalid! Signing Out...</h5>"
+    // Perform user operations.
+    function userButton(auth) {
+      var state = document.getElementById('signInButton').innerHTML;
+      var statestr = state.toString();
+      if (statestr.includes("Sign Out")) {
+        document.getElementById("signInButton").innerHTML = "Sign In";
         auth.signOut();
+        showSignedOut();
+      } else {
+        auth.getSession();
       }
+    }
+
+    // Handles an error
+    function processError(error, xhr, message, auth) {
+      console.error("---------------- Error Detected -----------------");
+      console.error(JSON.stringify(error, null, 2));
+      console.error(error.stack);
+
+      if (xhr) {
+        console.error(eval(xhr.responseText));
+        console.error(JSON.stringify(xhr, null, 2));
+      }
+      console.error("------------------------------------------------");
+
+      document.getElementById("statusAuth").innerHTML = "<h5>" + message + "</h5>"
+      auth.signOut();
+    }
+
+    //
+    // General auth functions
+    //
+
+    // Gets cognito identity pool openId token
+    const getUserInfo = async function (
+      cognitoUserPoolIdJwtToken,
+      cognitoUserPoolAccessJwtToken,
+      cognitoUserPoolId
+    ) {
+      const cognitoISP = new AWS.CognitoIdentityServiceProvider({
+        apiVersion: "2016-04-18",
+        region: region
+      });
+
+      const cognitoIdentity = new AWS.CognitoIdentity({
+        apiVersion: "2014-06-30",
+        region: region
+      });
+      const loginIdpId = `cognito-idp.${region}.amazonaws.com/${cognitoUserPoolId}`;
+
+      var cognitoidentity = new AWS.CognitoIdentity();
+      const getIdParameters = {
+        AccountId: AccountId,
+        IdentityPoolId: identityPool,
+        Logins: {
+          [loginIdpId]: cognitoUserPoolIdJwtToken
+        }
+      };
+
+      const idInfo = await cognitoidentity.getId(getIdParameters).promise();
+
+      var idTokenParams = {
+        IdentityId: idInfo.IdentityId,
+        Logins: {
+          [loginIdpId]: cognitoUserPoolIdJwtToken
+        }
+      };
+
+      const openIdToken = await cognitoIdentity
+        .getOpenIdToken(idTokenParams)
+        .promise();
+
+      return openIdToken.Token;
     };
-    // The default response_type is "token", uncomment the next line will make it be "code".
-    // auth.useCodeGrantFlow();
-    return auth;
-  }
+
+    function executeLambda(cognitoUserPoolIdJwtToken, endpoint, data, onSuccess, OnError) {
+      $.ajax({
+        type: 'POST',
+        url: endpoint,
+        headers: {
+          Authorization: cognitoUserPoolIdJwtToken
+        },
+        data: data,
+        success: onSuccess,
+        error: OnError
+      });
+    }
+
+    function navigateToQuickSight(quickSightURL) {
+      window.location = quickSightURL;
+      document.getElementById("consoleLink").innerHTML = "<a href='" + quickSightURL + "'>" + "https://quicksight.aws.amazon.com" + "</a>";
+      document.getElementById("loader").style.display = "none";
+      document.getElementById("instructions").style.display = 'block';
+    }
+
+    function getSignInToken(accessKeyId, secretAccessKey, sessionToken, id_token, auth) {
+      let creds = {
+        "sessionId": accessKeyId,
+        "sessionKey": secretAccessKey,
+        "sessionToken": sessionToken
+      }
+
+      let credsEncoded = encodeURIComponent(JSON.stringify(creds));
+      let uri = "https://signin.aws.amazon.com/federation?Action=getSigninToken&SessionDuration=43200&Session=" + credsEncoded;
+
+      executeLambda(id_token, endpoint, uri,
+        (response) => {
+          navigateToQuickSight("https://signin.aws.amazon.com/federation?Action=login&Issuer=" + thisUrlEncoded + "&Destination=" + quicksightUrlEncoded + "&SigninToken=" + response.SigninToken)
+        },
+        (xhr, status, error) => {
+          if (xhr.status == "0") {
+            processError(error, xhr, "Token Expired or Invalid! Signing Out...", auth);
+          } else {
+            processError(error, xhr, "Unexpected Error! Signing Out...", auth);
+          }
+        }
+      );
+    }
+
+    // Initialize a cognito auth object.
+    function initCognitoSDK() {
+      let auth = new AWSCognito.CognitoIdentityServiceProvider.CognitoAuth(authData);
+      auth.userhandler = {
+        onSuccess: function (result) {
+          showSignedIn(result);
+          let id_token = auth.signInUserSession.idToken.jwtToken;
+          const decodedToken = jwt_decode(id_token);
+
+          // console.log(JSON.stringify(decodedToken, null, 2));
+          // console.log(JSON.stringify(jwt_decode(auth.signInUserSession.accessToken.jwtToken), null, 2));
+
+          // Check which flow are we using
+          const mode = localStorage.getItem('mode');;
+
+          switch (mode) {
+            case "B": // Manually create user and generate embeded URL
+              executeLambda(id_token, endpoint, JSON.stringify({ "action": "geturl" }),
+                (response) => {
+                  navigateToQuickSight(response.url)
+                },
+                (xhr, status, error) => {
+                  debugger;
+
+                  processError(error, xhr, "Unexpected Error! Signing Out...", auth);
+                }
+              );
+              break;
+            case "C": // Original flow (only allows creation of a single user)
+              let cognitoParams = {
+                IdentityPoolId: identityPool,
+                // RoleSessionName: extractUsername(auth.signInUserSession.idToken.jwtToken), - ignored
+                Logins: {}
+              };
+              cognitoParams.Logins["cognito-idp." + region + ".amazonaws.com/" + poolId] = id_token;
+              AWS.config.credentials = new AWS.CognitoIdentityCredentials(cognitoParams);
+              AWS.config.getCredentials(function () {
+                getSignInToken(AWS.config.credentials.accessKeyId, AWS.config.credentials.secretAccessKey, AWS.config.credentials.sessionToken, id_token, auth);
+              });
+              break;
+            default:
+              // mode = "A" / default
+              const useInfoPromise = getUserInfo(
+                auth.signInUserSession.idToken.jwtToken,
+                auth.signInUserSession.accessToken.jwtToken,
+                poolId);
+              useInfoPromise.then(
+                (openIdToken) => {
+                  var sts = new AWS.STS({});
+                  var params = {
+                    RoleArn: CognitoQuickSightAuthRoleArn,
+                    RoleSessionName: decodedToken.email,
+                    WebIdentityToken: openIdToken,
+                  };
+
+                  sts.assumeRoleWithWebIdentity(params, function (err, data) {
+                    if (err) {
+                      processError(err, null, "Unable to assume the role! Signing Out...", auth);
+                    } else {
+                      getSignInToken(data.Credentials.AccessKeyId, data.Credentials.SecretAccessKey, data.Credentials.SessionToken, id_token);
+                    }
+                  });
+                },
+                (error) => {
+                  processError(error, null, "Unable to get user info! Signing Out...", auth);
+                });
+          }
+        },
+        onFailure: function (err) {
+          processError(err, null, "Token Expired or Invalid! Signing Out...", auth);
+        }
+      };
+      // The default response_type is "token", uncomment the next line will make it be "code".
+      // auth.useCodeGrantFlow();
+      return auth;
+    }
   </script>
 </body>
+
 </html>

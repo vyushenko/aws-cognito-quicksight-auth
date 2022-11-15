@@ -111,6 +111,7 @@ const sendResponse = (message, code, callback) => {
     },
     body: message
   };
+
   callback(null, getResponse);
 }
 
@@ -126,17 +127,21 @@ exports.handler = (event, context, callback) => {
   AwsAccountId = context.invokedFunctionArn.split(':')[4]
 
   /* console.log('event');
-  console.log(JSON.stringify(event));
+  console.log(JSON.stringify(event, null, 2));
   console.log('context');
-  console.log(JSON.stringify(context)); */
+  console.log(JSON.stringify(context, null, 2)); */
 
-  if ((event.body !== null) && (typeof event.body) === 'string') {
+  if ((event.body !== null) && (typeof event.body) === 'string' && event.body.length > 20) {
     executeUrl(event.body, callback);
   } else {
-    const email = event.requestContext.authorizer.claims.email;
+    sendResponse(JSON.stringify({
+      url: "https://yahoo.com"
+    }), 200, callback);
+
+    /* const email = event.requestContext.authorizer.claims.email;
     const username = email;
     const role = 'AUTHOR';
 
-    checkUser(email, username, role, callback);
+    checkUser(email, username, role, callback); */
   }
 };
