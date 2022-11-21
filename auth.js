@@ -12,5 +12,5 @@ const authData = {
     RedirectUriSignOut : 'https://vss-login-test.vyushenko.com' //CloudFront Distribution URL
 };
 const AccountId = "048120487275";
-const CognitoQuickSightAuthRoleArn = "arn:aws:iam::048120487275:role/CognitoQuickSight-AuthRole-1KLIP645W3XOM"; // from Identity pool
+const CognitoQuickSightAuthRoleArn = "arn:aws:iam::048120487275:role/QuickSightSSO"; // from Identity pool
 const AWSApiVersion = "2016-04-18";

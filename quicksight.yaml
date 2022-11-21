@@ -69,6 +69,7 @@ Resources:
         - AttributeDataType: "String"
           Name: email
           Required: True
+          Mutable: True
   CognitoUserPoolClient:    
     Type: "AWS::Cognito::UserPoolClient"
     Properties:
@@ -174,7 +175,19 @@ Resources:
       Handler: index.handler
       Runtime: nodejs14.x
       CodeUri: ./lambda.zip
-      Policies: AWSLambdaBasicExecutionRole
+      Policies: 
+        - AWSLambdaBasicExecutionRole
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - quicksight:GetSessionEmbedUrl
+                - quicksight:GetDashboardEmbedUrl
+                - quicksight:DescribeUser
+                - quicksight:GetAuthCode
+                - quicksight:GenerateEmbedUrlForRegisteredUser
+                - quicksight:RegisterUser
+              Resource: '*'
       Events:
         Post:
           Type: Api

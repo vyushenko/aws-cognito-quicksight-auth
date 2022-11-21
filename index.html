@@ -223,7 +223,7 @@
       let credsEncoded = encodeURIComponent(JSON.stringify(creds));
       let uri = "https://signin.aws.amazon.com/federation?Action=getSigninToken&SessionDuration=43200&Session=" + credsEncoded;
 
-      executeLambda(id_token, endpoint, uri,
+      executeLambda(id_token, endpoint, JSON.stringify({ "action" : "executeUrl", "data" : { "url" : uri } }),
         (response) => {
           navigateToQuickSight("https://signin.aws.amazon.com/federation?Action=login&Issuer=" + thisUrlEncoded + "&Destination=" + quicksightUrlEncoded + "&SigninToken=" + response.SigninToken)
         },
@@ -254,18 +254,16 @@
 
           switch (mode) {
             case "B": // Manually create user and generate embeded URL
-              executeLambda(id_token, endpoint, JSON.stringify({ "action": "geturl" }),
+              executeLambda(id_token, endpoint, JSON.stringify({ "action": "getEmbedUrl" }),
                 (response) => {
                   navigateToQuickSight(response.url)
                 },
                 (xhr, status, error) => {
-                  debugger;
-
                   processError(error, xhr, "Unexpected Error! Signing Out...", auth);
                 }
               );
               break;
-            case "C": // Original flow (only allows creation of a single user)
+            case "D": // Original flow (only allows creation of a single user)
               let cognitoParams = {
                 IdentityPoolId: identityPool,
                 // RoleSessionName: extractUsername(auth.signInUserSession.idToken.jwtToken), - ignored
@@ -277,8 +275,8 @@
                 getSignInToken(AWS.config.credentials.accessKeyId, AWS.config.credentials.secretAccessKey, AWS.config.credentials.sessionToken, id_token, auth);
               });
               break;
-            default:
-              // mode = "A" / default
+            case "A":
+              // SSO with multile users
               const useInfoPromise = getUserInfo(
                 auth.signInUserSession.idToken.jwtToken,
                 auth.signInUserSession.accessToken.jwtToken,
@@ -303,6 +301,17 @@
                 (error) => {
                   processError(error, null, "Unable to get user info! Signing Out...", auth);
                 });
+              break;
+            default:
+              executeLambda(id_token, endpoint, JSON.stringify({ "action": "createUserAndSignIn" }),
+                (response) => {
+                  navigateToQuickSight(response.url)
+                },
+                (xhr, status, error) => {
+                  processError(error, xhr, "Unexpected Error! Signing Out...", auth);
+                }
+              );
+              break;
           }
         },
         onFailure: function (err) {
