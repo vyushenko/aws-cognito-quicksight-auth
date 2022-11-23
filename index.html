@@ -13,8 +13,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.2/js/materialize.min.js"></script>
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1254.0.min.js"></script>
   <script src="auth.js"></script>
-  <script src="aws-cognito-sdk.js"></script>
-  <script src="amazon-cognito-auth.js"></script>
+  <script src="aws-cognito-sdk.min.js"></script>
+  <script src="amazon-cognito-auth.min.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
@@ -68,6 +68,8 @@
 
   </div>
   <script>
+    var CognitoAuth = AmazonCognitoIdentity.CognitoAuth;
+
     // Check which flow are we using
     const url = new URL(window.location.href);
     const mode = url.searchParams.get('mode');
@@ -172,7 +174,8 @@
 
     // Initialize a cognito auth object.
     function initCognitoSDK() {
-      let auth = new AWSCognito.CognitoIdentityServiceProvider.CognitoAuth(authData);
+      // let auth = new AWSCognito.CognitoIdentityServiceProvider.CognitoAuth(authData);
+      var auth = new AmazonCognitoIdentity.CognitoAuth(authData);
       auth.userhandler = {
         onSuccess: function (result) {
           console.error("Success");

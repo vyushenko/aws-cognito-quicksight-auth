@@ -5,6 +5,10 @@ A simple JavaScript frontend and SAM template to spin up a serverless backend, f
 </p>
 
 
+Scripts Repo
+https://github.com/amazon-archives/amazon-cognito-auth-js
+
+
 #### Removed snippets
 
 ```yaml
