@@ -1,9 +1,9 @@
-const identityPool = 'us-west-2:e2c366e0-dde2-4b54-a8b5-ee2834c5a0e0'; //Cognito Identity Pool
+const identityPool = 'us-west-2:399e8b26-4398-48e2-b90b-88a7d620846e'; //Cognito Identity Pool
 const region = 'us-west-2';
-const poolId = 'us-west-2_tFmpeYqqr'; //Cognito User Pool
-const clientId = 'okj50joromt14iprnrmtc2v2p'; //Cognito User Pool App
+// const poolId = 'us-west-2_x0SqgsKiK'; //Cognito User Pool
+const clientId = '4qvlvj7rc07mtgqg8vum18c4q2'; //Cognito User Pool App
 const appDomain = 'vy-quicksight-test.auth.us-west-2.amazoncognito.com';
-const endpoint = "https://vmpkc5pua0.execute-api.us-west-2.amazonaws.com/prod"; //API Endpoint URL
+const endpoint = "https://seoh0ermek.execute-api.us-west-2.amazonaws.com/prod"; //API Endpoint URL
 const authData = {
     ClientId : clientId, 
     AppWebDomain : appDomain,
@@ -11,6 +11,5 @@ const authData = {
     RedirectUriSignIn : 'https://vss-login-test.vyushenko.com', //CloudFront Distribution URL
     RedirectUriSignOut : 'https://vss-login-test.vyushenko.com' //CloudFront Distribution URL
 };
-const AccountId = "048120487275";
-const CognitoQuickSightAuthRoleArn = "arn:aws:iam::048120487275:role/QuickSightSSO"; // from Identity pool
-const AWSApiVersion = "2016-04-18";
+// const AccountId = "048120487275";
+// const CognitoQuickSightAuthRoleArn = "arn:aws:iam::048120487275:role/us-west-2QuickSightSSOdev"; // from Identity pool

@@ -14,8 +14,7 @@
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1254.0.min.js"></script>
   <script src="auth.js"></script>
   <script src="aws-cognito-sdk.js"></script>
-  <script src="amazon-cognito-auth.min.js"></script>
-  <script src="jwt-decode.js"></script>
+  <script src="amazon-cognito-auth.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
@@ -151,48 +150,6 @@
     // General auth functions
     //
 
-    // Gets cognito identity pool openId token
-    const getUserInfo = async function (
-      cognitoUserPoolIdJwtToken,
-      cognitoUserPoolAccessJwtToken,
-      cognitoUserPoolId
-    ) {
-      const cognitoISP = new AWS.CognitoIdentityServiceProvider({
-        apiVersion: "2016-04-18",
-        region: region
-      });
-
-      const cognitoIdentity = new AWS.CognitoIdentity({
-        apiVersion: "2014-06-30",
-        region: region
-      });
-      const loginIdpId = `cognito-idp.${region}.amazonaws.com/${cognitoUserPoolId}`;
-
-      var cognitoidentity = new AWS.CognitoIdentity();
-      const getIdParameters = {
-        AccountId: AccountId,
-        IdentityPoolId: identityPool,
-        Logins: {
-          [loginIdpId]: cognitoUserPoolIdJwtToken
-        }
-      };
-
-      const idInfo = await cognitoidentity.getId(getIdParameters).promise();
-
-      var idTokenParams = {
-        IdentityId: idInfo.IdentityId,
-        Logins: {
-          [loginIdpId]: cognitoUserPoolIdJwtToken
-        }
-      };
-
-      const openIdToken = await cognitoIdentity
-        .getOpenIdToken(idTokenParams)
-        .promise();
-
-      return openIdToken.Token;
-    };
-
     function executeLambda(cognitoUserPoolIdJwtToken, endpoint, data, onSuccess, OnError) {
       $.ajax({
         type: 'POST',
@@ -213,113 +170,37 @@
       document.getElementById("instructions").style.display = 'block';
     }
 
-    function getSignInToken(accessKeyId, secretAccessKey, sessionToken, id_token, auth) {
-      let creds = {
-        "sessionId": accessKeyId,
-        "sessionKey": secretAccessKey,
-        "sessionToken": sessionToken
-      }
-
-      let credsEncoded = encodeURIComponent(JSON.stringify(creds));
-      let uri = "https://signin.aws.amazon.com/federation?Action=getSigninToken&SessionDuration=43200&Session=" + credsEncoded;
-
-      executeLambda(id_token, endpoint, JSON.stringify({ "action" : "executeUrl", "data" : { "url" : uri } }),
-        (response) => {
-          navigateToQuickSight("https://signin.aws.amazon.com/federation?Action=login&Issuer=" + thisUrlEncoded + "&Destination=" + quicksightUrlEncoded + "&SigninToken=" + response.SigninToken)
-        },
-        (xhr, status, error) => {
-          if (xhr.status == "0") {
-            processError(error, xhr, "Token Expired or Invalid! Signing Out...", auth);
-          } else {
-            processError(error, xhr, "Unexpected Error! Signing Out...", auth);
-          }
-        }
-      );
-    }
-
     // Initialize a cognito auth object.
     function initCognitoSDK() {
       let auth = new AWSCognito.CognitoIdentityServiceProvider.CognitoAuth(authData);
       auth.userhandler = {
         onSuccess: function (result) {
+          console.error("Success");
+
           showSignedIn(result);
           let id_token = auth.signInUserSession.idToken.jwtToken;
-          const decodedToken = jwt_decode(id_token);
 
           // console.log(JSON.stringify(decodedToken, null, 2));
-          // console.log(JSON.stringify(jwt_decode(auth.signInUserSession.accessToken.jwtToken), null, 2));
 
           // Check which flow are we using
           const mode = localStorage.getItem('mode');;
-
-          switch (mode) {
-            case "B": // Manually create user and generate embeded URL
-              executeLambda(id_token, endpoint, JSON.stringify({ "action": "getEmbedUrl" }),
-                (response) => {
-                  navigateToQuickSight(response.url)
-                },
-                (xhr, status, error) => {
-                  processError(error, xhr, "Unexpected Error! Signing Out...", auth);
-                }
-              );
-              break;
-            case "D": // Original flow (only allows creation of a single user)
-              let cognitoParams = {
-                IdentityPoolId: identityPool,
-                // RoleSessionName: extractUsername(auth.signInUserSession.idToken.jwtToken), - ignored
-                Logins: {}
-              };
-              cognitoParams.Logins["cognito-idp." + region + ".amazonaws.com/" + poolId] = id_token;
-              AWS.config.credentials = new AWS.CognitoIdentityCredentials(cognitoParams);
-              AWS.config.getCredentials(function () {
-                getSignInToken(AWS.config.credentials.accessKeyId, AWS.config.credentials.secretAccessKey, AWS.config.credentials.sessionToken, id_token, auth);
-              });
-              break;
-            case "A":
-              // SSO with multile users
-              const useInfoPromise = getUserInfo(
-                auth.signInUserSession.idToken.jwtToken,
-                auth.signInUserSession.accessToken.jwtToken,
-                poolId);
-              useInfoPromise.then(
-                (openIdToken) => {
-                  var sts = new AWS.STS({});
-                  var params = {
-                    RoleArn: CognitoQuickSightAuthRoleArn,
-                    RoleSessionName: decodedToken.email,
-                    WebIdentityToken: openIdToken,
-                  };
-
-                  sts.assumeRoleWithWebIdentity(params, function (err, data) {
-                    if (err) {
-                      processError(err, null, "Unable to assume the role! Signing Out...", auth);
-                    } else {
-                      getSignInToken(data.Credentials.AccessKeyId, data.Credentials.SecretAccessKey, data.Credentials.SessionToken, id_token);
-                    }
-                  });
-                },
-                (error) => {
-                  processError(error, null, "Unable to get user info! Signing Out...", auth);
-                });
-              break;
-            default:
-              executeLambda(id_token, endpoint, JSON.stringify({ "action": "createUserAndSignIn" }),
-                (response) => {
-                  navigateToQuickSight(response.url)
-                },
-                (xhr, status, error) => {
-                  processError(error, xhr, "Unexpected Error! Signing Out...", auth);
-                }
-              );
-              break;
-          }
+          executeLambda(id_token, endpoint, JSON.stringify({ "action": "createUserAndSignIn" }),
+            (response) => {
+              navigateToQuickSight(response.url)
+            },
+            (xhr, status, error) => {
+              processError(error, xhr, "Unexpected Error! Signing Out...", auth);
+            }
+          );
         },
         onFailure: function (err) {
+          console.error("Failure");
+
           processError(err, null, "Token Expired or Invalid! Signing Out...", auth);
         }
       };
       // The default response_type is "token", uncomment the next line will make it be "code".
-      // auth.useCodeGrantFlow();
+      auth.useCodeGrantFlow();
       return auth;
     }
   </script>

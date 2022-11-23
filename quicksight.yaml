@@ -58,6 +58,10 @@ Parameters:
     Type: String
     Default: arn:aws:acm:us-east-1:048120487275:certificate/eb91159c-42bb-4c12-b506-a63f40e24633
     
+  Env:
+    Description: Short name for the enviroment
+    Type: String
+    Default: dev
 Resources:
   CognitoUserPool:
     Type: "AWS::Cognito::UserPool"
@@ -69,6 +73,18 @@ Resources:
         - AttributeDataType: "String"
           Name: email
           Required: True
+          Mutable: True
+        - AttributeDataType: "String"
+          Name: isMedtronic
+          Required: False
+          Mutable: True
+        - AttributeDataType: "String"
+          Name: hospitalID
+          Required: False
+          Mutable: True
+        - AttributeDataType: "String"
+          Name: role
+          Required: False
           Mutable: True
   CognitoUserPoolClient:    
     Type: "AWS::Cognito::UserPoolClient"
@@ -175,19 +191,18 @@ Resources:
       Handler: index.handler
       Runtime: nodejs14.x
       CodeUri: ./lambda.zip
-      Policies: 
-        - AWSLambdaBasicExecutionRole
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - quicksight:GetSessionEmbedUrl
-                - quicksight:GetDashboardEmbedUrl
-                - quicksight:DescribeUser
-                - quicksight:GetAuthCode
-                - quicksight:GenerateEmbedUrlForRegisteredUser
-                - quicksight:RegisterUser
-              Resource: '*'
+      Timeout: 30
+      Environment:
+        Variables:
+          ACCOUNT_ID: !Ref "AWS::AccountId"
+          ASSUME_ROLE_ARN: !GetAtt QuickSightSSORole.Arn
+          COGNITO_REGION: "us-west-2"
+          IDENTITY_POOL_ID: !Ref CognitoIdPool
+          LOGIN_URL: "https://vss-login-test.vyushenko.com"
+          NODE_OPTIONS: "--enable-source-maps"
+          QUICKSIGHT_REGION: "us-east-1"
+          USER_POOL_ID: !Ref CognitoUserPool
+      Role: !GetAtt QuickSightSSORole.Arn
       Events:
         Post:
           Type: Api
@@ -196,9 +211,10 @@ Resources:
             Method: POST
             RestApiId: 
                 Ref: QuickSightApi
-  AuthRole: 
+  QuickSightSSORole: 
     Type: "AWS::IAM::Role"
     Properties:
+      RoleName: {"Fn::Join": ["QuickSightSSO", [{"Ref": "AWS::Region"}, {"Ref": "Env"}]]} #us-west-2QuickSightSSOdev
       AssumeRolePolicyDocument: 
         Version: "2012-10-17"
         Statement: 
@@ -216,23 +232,54 @@ Resources:
               ForAnyValue:StringLike:
                 cognito-identity.amazonaws.com:amr:
                 - "authenticated"
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "lambda.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
       Path: "/"
-      Policies: 
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      Policies:
         - 
-          PolicyName: "QuickSightCreateUser"
+          PolicyName: "GenerateQSUrl"
           PolicyDocument: 
             Version: "2012-10-17"
             Statement: 
               - 
                 Effect: "Allow"
-                Action: "quicksight:CreateUser"
-                Resource: "*"
+                Action: "quicksight:GetDashboardEmbedUrl"
+                Resource: "*" #!GetAtt QuickSightFederationFunction.Arn
+        - 
+          PolicyName: "RegisterQSUser"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - 
+                Effect: "Allow"
+                Action: 
+                  - "quicksight:RegisterUser"
+                  - "quicksight:DescribeUser"
+                Resource: "*" #!GetAtt QuickSightFederationFunction.Arn
+        - 
+          PolicyName: "UpdateGroupMembership"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - 
+                Effect: "Allow"
+                Action: 
+                  - "quicksight:CreateGroupMembership"
+                  - "quicksight:DescribeGroupMembership"
+                Resource: "*" #!GetAtt QuickSightFederationFunction.Arn
   AuthRoleAttach:
     Type: "AWS::Cognito::IdentityPoolRoleAttachment"
     Properties:
       IdentityPoolId: !Ref CognitoIdPool
       Roles: 
-        authenticated: !GetAtt AuthRole.Arn
+        authenticated: !GetAtt QuickSightSSORole.Arn
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -611,4 +658,4 @@ Outputs:
     Value: !Ref CognitoUserPoolClient
   CognitoIdentityAuthRole:
     Description: <Cognito Identity IAM Auth Role>
-    Value: !Ref AuthRole
+    Value: !Ref QuickSightSSORole
